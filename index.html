@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bra Aubrey’s Tavern POS</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#b4541a"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f4f1ea;--sf:#fff;--tx:#1d1b16;--mu:#6b665b;--ac:#b4541a;--ac2:#1f6f4a;--bd:#ddd6c8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17150f;--sf:#24211a;--tx:#f2eee3;--mu:#a39d8e;--ac:#d9742f;--ac2:#4cb98a;--bd:#3a362b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17150f;--sf:#24211a;--tx:#f2eee3;--mu:#a39d8e;--ac:#d9742f;--ac2:#4cb98a;--bd:#3a362b;color-scheme:dark}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:16px system-ui,sans-serif;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--sf);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+#who{margin-left:auto;font-weight:600}
+footer{display:flex;justify-content:space-between;align-items:center;padding:6px 14px;background:var(--sf);border-top:1px solid var(--bd)}
+#lo{padding:6px 12px;font-size:13px;color:var(--mu)}
+nav{display:flex;gap:6px}
+nav button{border:0;background:none;color:var(--mu);font:600 15px system-ui;padding:10px 14px;border-radius:10px;cursor:pointer}
+nav button.on{background:var(--ac);color:#fff}
+main{flex:1;overflow:auto;padding:14px}
+h2{margin:8px 0}h3{margin:14px 0 6px}small,.mu{color:var(--mu);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.tile{min-height:84px;border:1px solid var(--bd);background:var(--sf);color:var(--tx);border-radius:12px;font:600 16px system-ui;padding:10px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;cursor:pointer;text-align:center;position:relative}
+.tile.v b{color:var(--ac2);font-size:20px}
+.badge{position:absolute;top:6px;right:8px;background:var(--ac);color:#fff;border-radius:12px;padding:2px 9px;font-size:13px}
+.b{border:1px solid var(--bd);background:var(--sf);color:var(--tx);border-radius:10px;padding:12px 16px;font:600 15px system-ui;cursor:pointer;text-decoration:none;display:inline-block}
+.b.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:flex-end}
+.sell{display:flex;gap:16px;flex-wrap:wrap}.sell section{flex:1 1 380px}
+.sell aside{flex:1 1 300px;max-width:380px;background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px;align-self:flex-start}
+.ln{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)}.ln>span:first-child{flex:1}
+.q{width:36px;height:36px;border:1px solid var(--bd);background:var(--sf);color:var(--tx);border-radius:8px;font-size:18px;cursor:pointer}
+.tot{display:flex;justify-content:space-between;font-size:20px;padding:12px 0}
+.pay{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.pay .b{text-align:center}
+.row{display:flex;gap:10px;align-items:flex-end;padding:8px 0;border-bottom:1px solid var(--bd);flex-wrap:wrap}.row>span{flex:1 1 200px}
+input,select{padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:16px;width:76px;box-sizing:border-box}
+select{width:auto}input[type=checkbox]{width:22px;height:22px}
+#sq{width:100%;margin:6px 0}
+label{font-size:12px;color:var(--mu)}label input{display:block}
+textarea{width:100%;height:300px;box-sizing:border-box;background:var(--sf);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:10px;font:13px ui-monospace,monospace}
+.big2{width:100%;margin:12px 0;text-align:center}
+#t{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:20px;opacity:0;transition:.2s;pointer-events:none;max-width:90%;text-align:center}
+</style></head><body>
+<header><b>🍺 Bra Aubrey’s Tavern</b><small>sample prices</small><span id="who"></span>
+<nav><button data-v="sell" onclick="go('sell')">Sell</button><button data-v="stock" onclick="go('stock')">Stock</button><button data-v="rep" data-o="1" onclick="go('rep')">Report</button><button data-v="admin" data-o="1" onclick="go('admin')">Admin</button></nav>
+</header>
+<main id="app"></main><footer id="ft"><small id="net"></small><button class="b" id="lo" onclick="lg()">Log out</button></footer><div id="t"></div>
+<script>
+const $=s=>document.querySelector(s),K='tvpos3',esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+let S={};try{S=JSON.parse(localStorage.getItem(K))||{}}catch(e){}
+S.stock=S.stock||{};S.price=S.price||{};S.sales=S.sales||[];S.days=S.days||{};S.pin=S.pin||'1234';S.email=S.email||'';S.staff=S.staff||[];S.hide=S.hide||{};S.custom=S.custom||[];
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const CATS={B:['Beers','🍺'],C:['Ciders','🍏'],S:['Spirits','🥃'],R:['Coolers','🧊'],M:['Mixers','🥤']};
+const RAW=`B|Castle Lager|Bottle|340ml|19|6:105,24:275
+B|Castle Lager|Can|500ml|20|24:360
+B|Castle Lager|Quart|750ml|34|c12:390
+B|Castle Lite|Bottle|330ml|21|6:115,24:300
+B|Castle Lite|Can|500ml|23|24:385
+B|Black Label|Bottle|330ml|20|6:110,24:290
+B|Black Label|Can|330ml|19|6:105,24:280
+B|Black Label|Can|500ml|22|24:375
+B|Black Label|Quart|750ml|34|c12:395
+B|Hansa Pilsener|Bottle|330ml|18|6:100,24:255
+B|Hansa Pilsener|Can|500ml|20|24:355
+B|Hansa Pilsener|Quart|750ml|32|c12:370
+B|Hansa Marzen Gold|Bottle|330ml|21|6:115,24:295
+B|Tafel Lager|Bottle|330ml|18|6:100,24:255
+B|Castle Milk Stout|Bottle|340ml|22|6:120,24:310
+B|Castle Double Malt|Bottle|330ml|22|6:120,24:305
+B|Castle Double Malt|Can|410ml|23|24:345
+B|Castle Free 0.0|Bottle|330ml|20|6:110,24:290
+B|Heineken|Bottle|330ml|27|6:150,24:400
+B|Corona Extra|Bottle|355ml|30|6:165,24:440
+B|Windhoek Lager|Bottle|330ml|24|6:130,24:345
+B|Windhoek Draught|Bottle|330ml|24|6:130,24:345
+B|Stella Artois|Bottle|330ml|28|6:155,24:420
+B|Amstel Lager|Bottle|330ml|25|6:135,24:355
+B|Budweiser|Bottle|330ml|26|6:145,24:395
+B|Miller Genuine Draft|Bottle|330ml|24|6:130,24:350
+B|Peroni Nastro Azzurro|Bottle|330ml|30|6:165,24:440
+C|Savanna|Dry bottle|330ml|24|6:130,24:455
+C|Savanna|Dry can|330ml|23|6:125,24:440
+C|Savanna|Dry bottle|500ml|30|12:335
+C|Savanna|Dry can|500ml|28|24:520
+C|Savanna|Light bottle|330ml|24|6:130,24:445
+C|Savanna|Loco bottle|330ml|24|6:130,24:445
+C|Savanna|Angry Lemon bottle|500ml|30|12:335
+C|Savanna|0.0 bottle|330ml|24|6:130,24:415
+C|Hunter’s|Dry bottle|330ml|23|6:125,24:375
+C|Hunter’s|Gold bottle|330ml|23|6:125,24:370
+C|Hunter’s|Hard Lemon bottle|330ml|23|6:125,24:375
+C|Strongbow|Red Berries bottle|330ml|24|6:130,24:375
+C|Strongbow|Red Berries can|440ml|27|24:435
+C|Strongbow|Gold bottle|330ml|24|6:130,24:375
+C|Strongbow|Gold can|440ml|27|24:435
+C|Flying Fish|Apple|330ml|22|6:120,24:330
+C|Flying Fish|Lemon|330ml|22|6:120,24:330
+C|Brutal Fruit|Ruby Apple can|500ml|24|24:395
+C|Brutal Fruit|Strawberry bottle|275ml|22|6:120,24:330
+C|Redds|Original|330ml|22|6:120,24:330
+S|Johnnie Walker|Red Label|750ml|270|
+S|Johnnie Walker|Red Label|375ml|145|
+S|Johnnie Walker|Black Label|750ml|450|
+S|Jameson|Irish Whiskey|750ml|340|
+S|Jack Daniel’s|No. 7|750ml|420|
+S|Bell’s|Whisky|750ml|230|
+S|J&B|Rare|750ml|250|
+S|Chivas Regal|12 Year|750ml|520|
+S|Three Ships|Select|750ml|220|
+S|Gordon’s|Gin|750ml|230|
+S|Tanqueray|London Dry Gin|750ml|350|
+S|Bombay Sapphire|Gin|750ml|380|
+S|Beefeater|Gin|750ml|290|
+S|Smirnoff|1818 Vodka|750ml|190|
+S|Smirnoff|1818 Vodka|375ml|110|
+S|Absolut|Blue Vodka|750ml|300|
+S|Russian Bear|Vodka|750ml|170|
+S|Klipdrift|Gold Brandy|750ml|230|
+S|Klipdrift|Gold Brandy|375ml|125|
+S|Richelieu|Brandy|750ml|200|
+S|Hennessy|VS|750ml|650|
+S|Captain Morgan|Spiced Rum|750ml|240|
+S|Bacardi|Carta Blanca|750ml|230|
+S|Jose Cuervo|Gold Tequila|750ml|340|
+S|Jägermeister|Liqueur|700ml|360|
+S|Amarula|Cream Liqueur|750ml|220|
+R|Smirnoff|Spin|275ml|26|6:145
+R|Cruiser|Vodka Lemon|275ml|26|6:145
+R|Bacardi|Breezer|275ml|26|6:145
+M|Coca-Cola|Can|330ml|14|6:80,24:290
+M|Coca-Cola|Bottle|2L|32|
+M|Sprite|Can|330ml|14|6:80,24:290
+M|Fanta Orange|Can|330ml|14|6:80,24:290
+M|Schweppes|Tonic|200ml|12|6:65,24:230
+M|Schweppes|Soda Water|200ml|12|6:65,24:230
+M|Schweppes|Dry Lemon|200ml|12|6:65,24:230
+M|Schweppes|Ginger Ale|200ml|12|6:65,24:230
+M|Appletiser|Bottle|275ml|22|6:120
+M|Red Bull|Can|250ml|24|
+M|Water|Still|500ml|10|24:180
+M|Water|Sparkling|500ml|12|24:220
+M|Ice|Bag|2kg|25|`;
+const P=[...RAW.split('\n'),...S.custom].map(r=>{const[c,b,v,s,p,k]=r.split('|');const u=[['Single',1,+p]];(k||'').split(',').filter(Boolean).forEach(x=>{let[q,z]=x.split(':');const cr=q[0]=='c';q=+q.replace('c','');u.push([cr?`Crate (${q})`:q==6?'6-pack':`Case (${q})`,q,+z])});return{id:(c+b+v+s).replace(/\W/g,''),c,b,v,s,nm:(b+' '+v).trim(),u}});
+const AP=()=>P.filter(p=>!S.hide[p.id]);
+const pr=(p,u)=>S.price[p.id+':'+u[1]]??u[2],R=n=>'R'+(+n).toFixed(2);
+const day=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const D=k=>{const d=S.days[k]=S.days[k]||{open:{},recv:{},close:{},vr:{},who:{}};d.who=d.who||{};return d};
+const lab=u=>u[0].replace(/ \(\d+\)/,'');
+function fmt(p,n){if(n===undefined)return'not counted';if(n===0)return'none';if(n<0)return n+' (check count)';const o=[];[...p.u].reverse().forEach(u=>{const k=Math.floor(n/u[1]);if(k>0){o.push(k+' '+lab(u).toLowerCase()+(k>1?'s':''));n-=k*u[1]}});return o.join(' + ')}
+const fz=(p,n)=>n===undefined?'-':n===0?'0':fmt(p,n);
+let me=null,pick=null,view='sell',cat='B',brand=null,prod=null,q='',cart=[],mode='open';
+const users=()=>[{name:'Owner',pin:S.pin,owner:1},...S.staff];
+function toast(m){const t=$('#t');t.textContent=m;t.style.opacity=1;clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.opacity=0,2400)}
+function go(v){view=v;render()}
+function render(){
+ $('nav').style.display=$('#ft').style.display=me?'':'none';$('#who').textContent=me?'👤 '+me.name:'';
+ if(!me){$('#app').innerHTML=vLogin();const l=$('#lp');if(l)l.focus();return}
+ if(!me.owner&&(view=='rep'||view=='admin'))view='sell';
+ if(view=='pay'&&!cart.length)view='sell';
+ document.querySelectorAll('nav button').forEach(b=>{b.style.display=b.dataset.o&&!me.owner?'none':'';b.classList.toggle('on',b.dataset.v==(view=='pay'?'sell':view))});
+ $('#app').innerHTML=({sell:vSell,pay:vPay,stock:vStock,rep:vRep,admin:vAdmin})[view]()}
+function vLogin(){const u=users();return `<div style="max-width:440px;margin:30px auto;text-align:center"><h2>${pick!==null?'Hi '+esc(u[pick].name)+', enter your PIN':'Who is working?'}</h2>`+(pick!==null?`<input id="lp" type="password" inputmode="numeric" style="width:170px;font-size:26px;text-align:center" onkeydown="if(event.key=='Enter')doLogin()"><div class="bar" style="justify-content:center"><button class="b" onclick="pick=null;render()">← Back</button><button class="b p" onclick="doLogin()">Log in</button></div>`:`<div class="grid">${u.map((x,i)=>`<button class="tile" onclick="pick=${i};render()">${esc(x.name)}</button>`).join('')}</div><p class="mu">First time? The Owner PIN is 1234. Change it, and add staff, in Admin.</p>`)+`</div>`}
+function doLogin(){const u=users()[pick];if($('#lp').value===String(u.pin)){me=u;pick=null;view='sell';render()}else toast('Wrong PIN')}
+const inCart=id=>cart.filter(c=>c.id==id).reduce((a,c)=>a+c.q*c.n,0);
+const vc=(id,n)=>cart.filter(c=>c.id==id&&c.n==n).reduce((a,c)=>a+c.q,0);
+const total=()=>cart.reduce((a,c)=>a+c.pr*c.q,0);
+const lines=()=>cart.map((c,i)=>`<div class="ln"><span>${c.nm} <small>${c.sz} · ${c.l}</small></span><span><button class="q" onclick="qty(${i},-1)">−</button> ${c.q} <button class="q" onclick="qty(${i},1)">+</button></span><b>${R(c.pr*c.q)}</b></div>`).join('');
+const sub=p=>`${p.s}${S.stock[p.id]===undefined?'':' · '+fmt(p,S.stock[p.id])}`;
+const ptile=(p,full)=>`<button class="tile" onclick="pk('${p.id}')">${full?p.nm:p.v}<small>${sub(p)}</small></button>`;
+const grp=c=>{const m={};AP().filter(x=>x.c==c).forEach(p=>(m[p.b]=m[p.b]||[]).push(p));return m};
+function pk(id){const p=P.find(x=>x.id==id);if(p.u.length==1)return add(id,0,1);prod=id;q='';render()}
+function br(i){const g=grp(cat),n=Object.keys(g)[i];if(g[n].length==1)return pk(g[n][0].id);brand=n;prod=null;q='';render()}
+function list(){const t=q.trim().toLowerCase();
+ if(t){const m=AP().filter(p=>(p.nm+' '+p.s).toLowerCase().includes(t));return `<div class="grid">${m.map(p=>ptile(p,1)).join('')||'<p class="mu">No match</p>'}</div>`}
+ if(prod){const p=P.find(x=>x.id==prod);return `<div class="bar"><button class="b" onclick="prod=null;render()">← Back</button><button class="b p" onclick="prod=null;brand=null;render()">✓ Done, pick another</button></div><h2>${p.nm} <small>${sub(p)}</small></h2><p class="mu">Tap to add to cart</p><div class="grid">${p.u.map((u,i)=>`<button class="tile v" onclick="add('${p.id}',${i})">${vc(p.id,u[1])?`<span class="badge">×${vc(p.id,u[1])}</span>`:''}${u[0]}<b>${R(pr(p,u))}</b></button>`).join('')}</div>`}
+ const g=grp(cat);
+ if(brand&&g[brand])return `<div class="bar"><button class="b" onclick="brand=null;render()">← All ${CATS[cat][0]}</button></div><h2>${brand}</h2><div class="grid">${g[brand].map(p=>ptile(p)).join('')}</div>`;
+ return `<div class="grid">${Object.entries(g).map(([n,a],i)=>`<button class="tile" onclick="br(${i})">${n}<small>${a.length==1?a[0].v+' · '+a[0].s:a.length+' options'}</small></button>`).join('')}</div>`}
+function vSell(){return `<div class="sell"><section><div class="bar">${Object.entries(CATS).map(([k,v])=>`<button class="b ${cat==k&&!q.trim()?'p':''}" onclick="cat='${k}';brand=null;prod=null;q='';render()">${v[1]} ${v[0]}</button>`).join('')}</div><input id="sq" type="search" placeholder="Search any drink…" value="${esc(q)}" oninput="q=this.value;$('#list').innerHTML=list()"><div id="list">${list()}</div></section><aside><h3 style="margin-top:0">Cart (${cart.reduce((a,c)=>a+c.q,0)} items)</h3>${lines()||'<p class="mu">Tap a drink to start an order</p>'}<div class="tot">Total <b>${R(total())}</b></div>${cart.length?`<button class="b p big2" onclick="view='pay';render()">Checkout →</button><button class="b" onclick="cart=[];render()">Clear cart</button>`:''}</aside></div>`}
+function add(id,i,t){const p=P.find(x=>x.id==id),u=p.u[i],s=S.stock[id];if(s!==undefined&&inCart(id)+u[1]>s)toast('Stock shows only '+fmt(p,s)+'. Check the count.');else if(t)toast('Added '+p.nm+' '+p.s);let e=cart.find(c=>c.id==id&&c.n==u[1]);if(e){e.q++;cart.splice(cart.indexOf(e),1)}else e={id,n:u[1],l:u[0],nm:p.nm,sz:p.s,pr:pr(p,u),q:1};cart.unshift(e);render()}
+function qty(i,d){const c=cart[i];c.q+=d;if(c.q<1)cart.splice(i,1);render()}
+function vPay(){const t=total();return `<div style="max-width:560px"><button class="b" onclick="view='sell';render()">← Add more drinks</button><h2>Checkout</h2>${lines()}<div class="tot">Total <b>${R(t)}</b></div><label>Cash received (optional)<input id="cr" type="number" inputmode="decimal" oninput="chg(${t})"></label><p id="chg" class="mu"></p><div class="pay">${['Cash','Card','EFT'].map(m=>`<button class="b p" onclick="pay('${m}')">${m}</button>`).join('')}</div></div>`}
+function chg(t){const v=+$('#cr').value;$('#chg').textContent=v?(v>=t?'Change: '+R(v-t):'Short by '+R(t-v)):''}
+function pay(m){const s={id:Date.now(),ts:Date.now(),day:day(),pay:m,by:me.name,total:total(),lines:cart.map(c=>({id:c.id,n:c.n,l:c.l,nm:c.nm,pr:c.pr,q:c.q}))};cart.forEach(c=>{if(S.stock[c.id]!==undefined)S.stock[c.id]-=c.q*c.n});S.sales.push(s);save();toast(m+' sale '+R(s.total)+' saved');cart=[];prod=null;brand=null;q='';cat='B';view='sell';render()}
+function vStock(){const lb={open:'Opening count',close:'Closing count',recv:'Delivery in'};
+ return `<h2>Stock</h2><div class="bar">${Object.entries(lb).map(([k,v])=>`<button class="b ${mode==k?'p':''}" onclick="mode='${k}';render()">${v}</button>`).join('')}</div><p class="mu">${mode=='recv'?'Type what was delivered, in cases, packs or singles.':'Count what is physically there: full cases or crates, 6-packs and loose singles. Leave a drink blank to skip it.'}</p>`+Object.entries(CATS).map(([k,v])=>`<h3>${v[1]} ${v[0]}</h3>${AP().filter(p=>p.c==k).map(p=>`<div class="row"><span>${p.nm} <small>${p.s}<br>system: ${fmt(p,S.stock[p.id])}</small></span>${[...p.u].reverse().map(u=>`<label>${lab(u)}s<input type="number" inputmode="numeric" min="0" data-id="${p.id}" data-q="${u[1]}"></label>`).join('')}</div>`).join('')}`).join('')+`<button class="b p big2" onclick="saveStock()">Save ${lb[mode].toLowerCase()}</button>`}
+function saveStock(){const d=D(day()),t={};document.querySelectorAll('[data-id]').forEach(i=>{if(i.value==='')return;t[i.dataset.id]=(t[i.dataset.id]||0)+(+i.value)*(+i.dataset.q)});
+ Object.entries(t).forEach(([id,v])=>{const s=S.stock[id];if(mode=='open'){d.open[id]=v;S.stock[id]=v}else if(mode=='close'){d.close[id]=v;if(s!==undefined)d.vr[id]=(d.vr[id]||0)+(v-s);S.stock[id]=v}else{d.recv[id]=(d.recv[id]||0)+v;S.stock[id]=(s||0)+v}});
+ if(Object.keys(t).length)d.who[mode]=me.name;save();toast(Object.keys(t).length+' drinks saved');render()}
+function build(k){const d=S.days[k]||{open:{},recv:{},close:{},vr:{},who:{}},ss=S.sales.filter(s=>s.day==k&&!s.void),sold={},by={},bs={};
+ ss.forEach(s=>{by[s.pay]=(by[s.pay]||0)+s.total;bs[s.by||'?']=(bs[s.by||'?']||0)+s.total;s.lines.forEach(l=>sold[l.id]=(sold[l.id]||0)+l.q*l.n)});
+ const tot=ss.reduce((a,s)=>a+s.total,0),wn={open:'opening',close:'closing',recv:'delivery'};let loss=0;
+ let t=`🍺 BRA AUBREY’S TAVERN\nDAILY REPORT ${k}\nSales: ${R(tot)} (${ss.length} sales)\n`+(Object.entries(by).map(([m,v])=>`${m} ${R(v)}`).join(' | ')||'No sales yet')+`\nBy staff: `+(Object.entries(bs).map(([m,v])=>`${m} ${R(v)}`).join(' | ')||'-')+`\nCounts: `+(Object.entries(d.who||{}).map(([m,n])=>`${wn[m]} by ${n}`).join(', ')||'none yet')+`\n\nSTOCK\n`;
+ P.forEach(p=>{const id=p.id,o=d.open[id],r=d.recv[id],s=sold[id]||0,c=d.close[id],v=d.vr[id];if(o===undefined&&!r&&!s&&c===undefined)return;if(v<0)loss+=-v*pr(p,p.u[0]);
+  t+=`${p.nm} ${p.s}\n  open ${fz(p,o)} | in ${fz(p,r)} | sold ${fz(p,s)}\n  expected ${fz(p,o===undefined?undefined:o+(r||0)-s)} | counted ${fz(p,c)} | diff ${c===undefined||v===undefined?'-':(v>0?'+':'')+v+' units'+(v<0?' ⚠':'')}\n`});
+ t+=`\nMissing stock value: ${R(loss)}\n`;
+ const top=Object.entries(sold).sort((a,b)=>b[1]-a[1]).slice(0,5);
+ if(top.length)t+=`\nTOP SELLERS\n`+top.map(([id,n])=>{const p=P.find(x=>x.id==id);return `${p.nm} ${p.s}: ${fz(p,n)}`}).join('\n')+`\n`;
+ const since=day(new Date(new Date(k+'T12:00').getTime()-6*864e5)),rc=S.sales.filter(s=>!s.void&&s.day>=since&&s.day<=k),nd=new Set(rc.map(s=>s.day)).size||1,w={};
+ rc.forEach(s=>s.lines.forEach(l=>w[l.id]=(w[l.id]||0)+l.q*l.n));
+ const rs=P.filter(p=>w[p.id]&&S.stock[p.id]!==undefined).map(p=>{const dl=w[p.id]/nd,cov=S.stock[p.id]/dl,big=p.u[p.u.length-1];return{p,dl,cov,big}}).filter(x=>x.cov<3).map(x=>`${x.p.nm} ${x.p.s}: ~${x.dl.toFixed(1)}/day, ${fmt(x.p,S.stock[x.p.id])} left (~${Math.max(0,x.cov).toFixed(1)} days) → order ${Math.max(1,Math.ceil((x.dl*7-S.stock[x.p.id])/x.big[1]))} × ${x.big[0]}`);
+ t+=`\nRESTOCK (7-day cover, 2-day lead time)\n`+(rs.join('\n')||'Nothing urgent');return t}
+function vRep(){const k=day(),txt=build(k),e=encodeURIComponent(txt),ss=S.sales.filter(s=>s.day==k).slice().reverse();
+ return `<h2>Report for ${k}</h2><textarea id="rt" readonly>${txt}</textarea><div class="bar"><a class="b p" target="_blank" href="https://wa.me/?text=${e}">WhatsApp</a><a class="b" target="_blank" href="https://t.me/share/url?url=%20&text=${e}">Telegram</a><a class="b" target="_blank" href="mailto:${esc(S.email)}?subject=${encodeURIComponent('Daily report '+k)}&body=${e}">Email</a><button class="b" onclick="cp()">Copy</button></div><h3>Today’s sales</h3>${ss.map(s=>`<div class="ln" style="${s.void?'opacity:.4;text-decoration:line-through':''}"><span>${new Date(s.ts).toTimeString().slice(0,5)} · ${s.pay} · ${esc(s.by||'')} · ${s.lines.map(l=>l.q+'× '+l.nm+' '+l.l).join(', ')}</span><b>${R(s.total)}</b>${s.void?'':`<button class="q" style="width:auto;padding:0 10px" onclick="vd(${s.id})">Void</button>`}</div>`).join('')||'<p class="mu">No sales yet</p>'}`}
+function cp(){const t=$('#rt');try{navigator.clipboard.writeText(t.value).then(()=>toast('Copied'),()=>{t.select();toast('Selected: press copy')})}catch(e){t.select();toast('Selected: press copy')}}
+function vd(id){if(vd.p!==id){vd.p=id;setTimeout(()=>vd.p=null,4000);return toast('Tap Void again to confirm')}const s=S.sales.find(x=>x.id==id);s.void=1;s.lines.forEach(l=>{if(S.stock[l.id]!==undefined)S.stock[l.id]+=l.q*l.n});save();render()}
+function vAdmin(){return `<h2>Admin</h2><div class="bar"><label>Owner email (for the report)<input style="width:240px" value="${esc(S.email)}" onchange="S.email=this.value;save()"></label><label>Owner PIN<input value="${esc(S.pin)}" onchange="if(this.value.length<4){toast('PIN needs 4+ digits');this.value=S.pin;return}S.pin=this.value;save()"></label></div>
+<h3>Staff</h3>${S.staff.map((s,i)=>`<div class="row"><label>Name<input style="width:170px" value="${esc(s.name)}" onchange="S.staff[${i}].name=this.value;save()"></label><label>PIN<input value="${esc(s.pin)}" onchange="S.staff[${i}].pin=this.value;save()"></label><button class="b" onclick="S.staff.splice(${i},1);save();render()">Remove</button></div>`).join('')}<div class="row"><label>New staff name<input id="sn" style="width:170px"></label><label>Personal PIN<input id="sp" inputmode="numeric"></label><button class="b p" onclick="addStaff()">Add staff</button></div>
+<h3>Add a drink</h3><div class="row"><label>Category<select id="nc">${Object.entries(CATS).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}</select></label><label>Brand<input id="nb" style="width:130px"></label><label>Type (e.g. Can)<input id="nv" style="width:110px"></label><label>Size<input id="ns" placeholder="500ml"></label><label>Single R<input id="n1" type="number"></label><label>Pack of<input id="nq" type="number" placeholder="6/24"></label><label>Pack R<input id="np" type="number"></label><button class="b p" onclick="addProd()">Add</button></div>
+<h3>Prices and visibility</h3><p class="mu">Tick Hide for drinks you don’t stock.</p>`+P.map(p=>`<div class="row"><span>${p.nm} <small>${p.s}</small></span>${p.u.map(u=>`<label>${u[0]}<input type="number" step="0.01" value="${pr(p,u)}" onchange="S.price['${p.id}:${u[1]}']=+this.value;save()"></label>`).join('')}<label>Hide<input type="checkbox" ${S.hide[p.id]?'checked':''} onchange="S.hide['${p.id}']=this.checked;save()"></label></div>`).join('')+`<h3>Backup</h3><p class="mu">Copy the backup and send it to yourself (WhatsApp, email). Paste it here to restore on this or another tablet.</p><textarea id="bk" style="height:90px"></textarea><div class="bar"><button class="b" onclick="bkc()">Copy backup</button><button class="b" onclick="bkr()">Restore from pasted text</button></div><button class="b big2" onclick="rst()">Reset all data</button>`}
+function addStaff(){const n=$('#sn').value.trim(),p=$('#sp').value.trim();if(!n||p.length<4)return toast('Needs a name and a PIN of 4+ digits');S.staff.push({name:n,pin:p});save();render()}
+function addProd(){const g=i=>$('#'+i).value.trim().replace(/\|/g,''),b=g('nb'),s=g('ns'),p=+g('n1'),k=+g('nq'),z=+g('np');if(!b||!s||!p)return toast('Needs brand, size and single price');S.custom.push([g('nc'),b,g('nv'),s,p,k>1&&z?k+':'+z:''].join('|'));save();toast('Added. Reloading…');setTimeout(()=>location.reload(),600)}
+function lg(){if(lg.s!==1){lg.s=1;setTimeout(()=>lg.s=0,4000);return toast('Tap again to log out')}me=null;cart=[];lg.s=0;render()}
+function bkc(){const t=$('#bk');t.value=JSON.stringify(S);try{navigator.clipboard.writeText(t.value).then(()=>toast('Backup copied'),()=>{t.select();toast('Selected: press copy')})}catch(e){t.select()}}
+function bkr(){try{const o=JSON.parse($('#bk').value);if(!o.stock||!o.sales)throw 0;S=o;save();toast('Restored. Reloading…');setTimeout(()=>location.reload(),600)}catch(e){toast('That is not a valid backup')}}
+function rst(){if(rst.s!==1){rst.s=1;setTimeout(()=>rst.s=0,4000);return toast('Tap again to wipe ALL data')}try{localStorage.removeItem(K)}catch(e){}location.reload()}
+render();
+const nt=()=>{$('#net').textContent=navigator.onLine?'● Online':'● Offline: sales are saved on this tablet'};addEventListener('online',nt);addEventListener('offline',nt);nt();
+try{if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+</script></body></html>
